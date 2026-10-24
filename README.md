@@ -20,15 +20,15 @@ mouse ──evdev──> forward ──USB serial──> nRF52840 ──BLE HID�
 Any nRF52840 board supported by the Adafruit nRF52 Arduino core (Bluefruit), e.g. a
 SuperMini nRF52840 (nice!nano clone) or an Adafruit Feather nRF52840.
 
-## Build / flash
-    make forward      # also: make test (doctest), make lint (clang-format + clang-tidy)
-
+## Flash / build
 Flash the firmware with the Arduino IDE or arduino-cli, picking your board's FQBN and port.
 For a SuperMini with the nRFMicro-like core:
 
     arduino-cli compile --upload -b nRFMicro-like_Boards:nrf52:supermini -p /dev/ttyACM0 fake-bluetooth-mouse
 
-Close any serial monitor first (it holds the port).
+Close any serial monitor first (it holds the port). Then build `forward`:
+
+    make forward      # also: make test (doctest), make lint (clang-format + clang-tidy)
 
 ## Pairing
 Once, on the other device: Bluetooth settings -> add device -> "Desk Mouse". The board's
