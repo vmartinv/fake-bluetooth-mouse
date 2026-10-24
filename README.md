@@ -1,9 +1,12 @@
 # fake-bluetooth-mouse
 
-Share one computer's mouse with another device without installing anything on that device.
-An nRF52840 board plugged into the computer by USB pairs with the other device as a plain
-Bluetooth mouse ("Desk Mouse"). `forward` grabs the computer's mouse (so its own cursor stops)
-and streams it to the board over USB serial; stop `forward` to get the mouse back.
+Use your computer's mouse on a second device (a laptop, tablet, phone…) as if it were a
+Bluetooth mouse, with nothing to install on the second device.
+
+You plug a cheap nRF52840 board into the computer by USB, and the second device pairs with it
+like any Bluetooth mouse. A small Linux program, `forward`, takes over the computer's mouse and
+sends its movements and clicks to the board. The board passes them on over Bluetooth. Stop
+`forward` and the mouse controls the computer again.
 
 ```
 mouse ──evdev──> forward ──USB serial──> nRF52840 ──BLE HID──> other device
