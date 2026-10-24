@@ -1,0 +1,10 @@
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-signed-bitwise,
+  performance-*,
+  misc-unused-*,
+WarningsAsErrors: '*'
+HeaderFilterRegex: 'mouse_frame\.h'
