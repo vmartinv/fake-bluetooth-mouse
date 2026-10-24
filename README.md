@@ -15,8 +15,6 @@ mouse ──evdev──> forward ──USB serial──> nRF52840 ──BLE HID�
 - `fake-bluetooth-mouse/fake-bluetooth-mouse.ino`: board firmware (Bluefruit BLE HID mouse fed by USB serial).
 - `forward.cpp`: computer side (Linux). Grabs the mouse with EVIOCGRAB and writes one frame
   per SYN_REPORT to the board.
-- `mouse_frame.h`: evdev events -> serial frames, unit-tested in `test/` with doctest
-  (vendored `test/doctest.h`, MIT).
 
 ## Hardware
 Any nRF52840 board supported by the Adafruit nRF52 Arduino core (Bluefruit), e.g. a
