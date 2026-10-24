@@ -8,7 +8,8 @@ Bluetooth mouse ("Desk Mouse"). While the Magic Keyboard is unplugged from the P
 - `fake-mouse/fake-mouse.ino`: board firmware (Bluefruit BLE HID mouse fed by USB serial).
 - `forward.cpp`: PC side. Grabs `/dev/input/by-id/usb-Logitech_USB_Receiver-if01-event-mouse`
   (EVIOCGRAB, so the PC cursor stops) and writes one frame per SYN_REPORT to the board.
-- `mouse_frame.h`: evdev events -> serial frames, unit-tested in `test/`.
+- `mouse_frame.h`: evdev events -> serial frames, unit-tested in `test/` with doctest
+  (vendored `test/doctest.h`, MIT).
 
 Serial frame (7 bytes): `0xA5, buttons, dx int16 LE, dy int16 LE, wheel int8`.
 Buttons: bit 0 left, 1 right, 2 middle, 3 back, 4 forward. The firmware sums motion
@@ -26,7 +27,7 @@ Log: `journalctl -t fake-mouse`.
 ## Build / flash
 Close the Arduino IDE's Serial Monitor first (it holds the port).
 
-    make forward      # also: make test, make lint (clang-format + clang-tidy)
+    make forward      # also: make test (doctest), make lint (clang-format + clang-tidy)
     CLI=/opt/arduino-ide/resources/app/lib/backend/resources/arduino-cli
     $CLI --config-file ~/.arduinoIDE/arduino-cli.yaml compile --upload \
         -b nRFMicro-like_Boards:nrf52:supermini -p /dev/ttyACM0 fake-mouse

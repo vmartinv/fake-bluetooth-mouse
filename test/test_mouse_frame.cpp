@@ -1,16 +1,8 @@
-// Unit tests for mouse_frame.h. Decodes frames the way fake-mouse.ino does.
+// Unit tests for mouse_frame.h. Frames are decoded the way fake-mouse.ino does.
 #include "../mouse_frame.h"
 
-#include <cstdio>
-
-static int failures = 0;
-#define CHECK(cond)                                                                                          \
-    do {                                                                                                     \
-        if (!(cond)) {                                                                                       \
-            std::fprintf(stderr, "%s:%d: CHECK(%s)\n", __FILE__, __LINE__, #cond);                           \
-            failures++;                                                                                      \
-        }                                                                                                    \
-    } while (0)
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include "doctest.h"
 
 struct Decoded {
     uint8_t buttons;
@@ -29,7 +21,7 @@ static input_event ev(uint16_t type, uint16_t code, int32_t value) {
     return e;
 }
 
-static void testEncodeRoundTrip() {
+TEST_CASE("encodeFrame round-trips") {
     Frame f = encodeFrame(0x13, -300, 1234, -2);
     CHECK(f[0] == SYNC);
     Decoded d = decode(f);
@@ -39,7 +31,7 @@ static void testEncodeRoundTrip() {
     CHECK(d.wheel == -2);
 }
 
-static void testEncodeClamps() {
+TEST_CASE("encodeFrame clamps to the field range") {
     Decoded d = decode(encodeFrame(0, 100000, -100000, 500));
     CHECK(d.dx == 32767);
     CHECK(d.dy == -32768);
@@ -47,7 +39,7 @@ static void testEncodeClamps() {
     CHECK(decode(encodeFrame(0, 0, 0, -500)).wheel == -127);
 }
 
-static void testButtonBits() {
+TEST_CASE("buttonBit maps the known buttons") {
     CHECK(buttonBit(BTN_LEFT) == 0);
     CHECK(buttonBit(BTN_RIGHT) == 1);
     CHECK(buttonBit(BTN_MIDDLE) == 2);
@@ -56,46 +48,38 @@ static void testButtonBits() {
     CHECK(buttonBit(BTN_TASK) == -1);
 }
 
-static void testStateSumsMotionUntilSyn() {
+TEST_CASE("MouseState sums motion until SYN_REPORT") {
     MouseState s;
-    CHECK(!s.feed(ev(EV_REL, REL_X, 3)));
-    CHECK(!s.feed(ev(EV_REL, REL_X, 4)));
-    CHECK(!s.feed(ev(EV_REL, REL_Y, -5)));
-    CHECK(!s.feed(ev(EV_REL, REL_WHEEL, 1)));
-    CHECK(!s.feed(ev(EV_REL, REL_HWHEEL, 9)));  // ignored
+    CHECK_FALSE(s.feed(ev(EV_REL, REL_X, 3)));
+    CHECK_FALSE(s.feed(ev(EV_REL, REL_X, 4)));
+    CHECK_FALSE(s.feed(ev(EV_REL, REL_Y, -5)));
+    CHECK_FALSE(s.feed(ev(EV_REL, REL_WHEEL, 1)));
+    CHECK_FALSE(s.feed(ev(EV_REL, REL_HWHEEL, 9)));  // not forwarded
     CHECK(s.feed(ev(EV_SYN, SYN_REPORT, 0)));
     Decoded d = decode(s.takeFrame());
     CHECK(d.dx == 7);
     CHECK(d.dy == -5);
     CHECK(d.wheel == 1);
-
-    d = decode(s.takeFrame());  // motion is reset after a frame
-    CHECK(d.dx == 0 && d.dy == 0 && d.wheel == 0);
 }
 
-static void testStateButtonsPersist() {
+TEST_CASE("MouseState resets motion after a frame") {
+    MouseState s;
+    s.feed(ev(EV_REL, REL_X, 3));
+    s.takeFrame();
+    Decoded d = decode(s.takeFrame());
+    CHECK(d.dx == 0);
+    CHECK(d.dy == 0);
+    CHECK(d.wheel == 0);
+}
+
+TEST_CASE("MouseState keeps buttons held across frames") {
     MouseState s;
     s.feed(ev(EV_KEY, BTN_LEFT, 1));
     s.feed(ev(EV_KEY, BTN_EXTRA, 1));
-    s.feed(ev(EV_SYN, SYN_REPORT, 0));
     CHECK(decode(s.takeFrame()).buttons == 0x11);
-    CHECK(decode(s.takeFrame()).buttons == 0x11);  // held across frames
+    CHECK(decode(s.takeFrame()).buttons == 0x11);
     s.feed(ev(EV_KEY, BTN_LEFT, 0));
     CHECK(decode(s.takeFrame()).buttons == 0x10);
-    s.feed(ev(EV_KEY, BTN_TASK, 1));  // unmapped button
+    s.feed(ev(EV_KEY, BTN_TASK, 1));  // unmapped
     CHECK(decode(s.takeFrame()).buttons == 0x10);
-}
-
-int main() {
-    testEncodeRoundTrip();
-    testEncodeClamps();
-    testButtonBits();
-    testStateSumsMotionUntilSyn();
-    testStateButtonsPersist();
-    if (failures) {
-        std::fprintf(stderr, "%d check(s) failed\n", failures);
-        return 1;
-    }
-    std::puts("all tests passed");
-    return 0;
 }
