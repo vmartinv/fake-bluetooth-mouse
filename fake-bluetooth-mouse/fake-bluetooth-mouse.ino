@@ -1,4 +1,4 @@
-// BLE mouse fed over USB serial by ~/fake-bluetooth-mouse/forward (see ../README.md).
+// BLE mouse fed over USB serial by forward (see ../README.md).
 // Frame: 0xA5, buttons, dx (int16 LE), dy (int16 LE), wheel (int8).
 #include <bluefruit.h>
 
@@ -74,7 +74,7 @@ void setup() {
   Bluefruit.begin();
   Bluefruit.setName("Desk Mouse");
   Bluefruit.Periph.setConnInterval(6, 12);  // 7.5-15 ms; the host has the final say
-  Bluefruit.setTxPower(0);  // dBm; the laptop is close, less heat than +4
+  Bluefruit.setTxPower(0);  // dBm; enough for a nearby device, less heat than +4
   Bluefruit.autoConnLed(true);  // LED blinks while advertising, solid when connected
 
   bledis.setManufacturer("fake-mouse");

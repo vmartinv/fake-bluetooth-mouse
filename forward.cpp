@@ -1,5 +1,5 @@
-// Grab the PC's mouse and stream it to the fake-bluetooth-mouse board (BLE mouse) over USB serial.
-// Started/stopped by the Magic Keyboard udev rule; see README.md.
+// Grab a local mouse and stream it to the fake-bluetooth-mouse board (BLE mouse) over USB serial.
+// Usage: forward <mouse event device> <board serial device>; see README.md.
 #include "mouse_frame.h"
 
 #include <cerrno>
@@ -10,9 +10,6 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-
-constexpr const char *MOUSE = "/dev/input/by-id/usb-Logitech_USB_Receiver-if01-event-mouse";
-constexpr const char *BOARD = "/dev/serial/by-id/usb-Generic_SuperMini_nRF52840_A0676BAC06D1FD2C-if00";
 
 volatile sig_atomic_t stop = 0;
 
@@ -37,14 +34,18 @@ static bool sendFrame(int fd, const Frame &frame) {
     return write(fd, frame.data(), frame.size()) == ssize_t(frame.size());
 }
 
-int main() {
+int main(int argc, char **argv) {
+    if (argc != 3) {
+        std::fprintf(stderr, "usage: %s <mouse event device> <board serial device>\n", argv[0]);
+        return 2;
+    }
     struct sigaction sa {};
     sa.sa_handler = [](int) { stop = 1; };  // no SA_RESTART: interrupts the blocking read
     sigaction(SIGTERM, &sa, nullptr);
     sigaction(SIGINT, &sa, nullptr);
 
-    Fd board(BOARD, O_WRONLY | O_NOCTTY);
-    Fd mouse(MOUSE, O_RDONLY);
+    Fd board(argv[2], O_WRONLY | O_NOCTTY);
+    Fd mouse(argv[1], O_RDONLY);
     if (!board || !mouse) return 1;
 
     termios tio {};
@@ -74,7 +75,7 @@ int main() {
             }
         }
     }
-    sendFrame(board.get(), encodeFrame(0, 0, 0, 0));  // release any held button on the laptop
+    sendFrame(board.get(), encodeFrame(0, 0, 0, 0));  // release any held button on the other device
     std::fprintf(stderr, "stopped\n");
     return 0;
 }

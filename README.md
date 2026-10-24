@@ -1,40 +1,67 @@
 # fake-bluetooth-mouse
 
-Uses the PC's mouse on the work laptop without installing anything on the laptop.
-A SuperMini nRF52840 plugged into the PC is paired with the laptop as a plain
-Bluetooth mouse ("Desk Mouse"). While the Magic Keyboard is unplugged from the PC
-(you're on the laptop), `forward` grabs the PC's mouse and streams it to the board.
+Share one computer's mouse with another device without installing anything on that device.
+An nRF52840 board plugged into the computer by USB pairs with the other device as a plain
+Bluetooth mouse ("Desk Mouse"). `forward` grabs the computer's mouse (so its own cursor stops)
+and streams it to the board over USB serial; stop `forward` to get the mouse back.
+
+```
+mouse ──evdev──> forward ──USB serial──> nRF52840 ──BLE HID──> other device
+```
 
 - `fake-bluetooth-mouse/fake-bluetooth-mouse.ino`: board firmware (Bluefruit BLE HID mouse fed by USB serial).
-- `forward.cpp`: PC side. Grabs `/dev/input/by-id/usb-Logitech_USB_Receiver-if01-event-mouse`
-  (EVIOCGRAB, so the PC cursor stops) and writes one frame per SYN_REPORT to the board.
+- `forward.cpp`: computer side (Linux). Grabs the mouse with EVIOCGRAB and writes one frame
+  per SYN_REPORT to the board.
 - `mouse_frame.h`: evdev events -> serial frames, unit-tested in `test/` with doctest
   (vendored `test/doctest.h`, MIT).
 
+## Hardware
+Any nRF52840 board supported by the Adafruit nRF52 Arduino core (Bluefruit), e.g. a
+SuperMini nRF52840 (nice!nano clone) or an Adafruit Feather nRF52840.
+
+## Build / flash
+    make forward      # also: make test (doctest), make lint (clang-format + clang-tidy)
+
+Flash the firmware with the Arduino IDE or arduino-cli, picking your board's FQBN and port.
+For a SuperMini with the nRFMicro-like core:
+
+    arduino-cli compile --upload -b nRFMicro-like_Boards:nrf52:supermini -p /dev/ttyACM0 fake-bluetooth-mouse
+
+Close any serial monitor first (it holds the port).
+
+## Pairing
+Once, on the other device: Bluetooth settings -> add device -> "Desk Mouse". The board's
+LED blinks while advertising and stays on when connected; the device reconnects by itself.
+
+## Running
+    ./forward /dev/input/by-id/<your-mouse>-event-mouse /dev/serial/by-id/<your-board>
+
+Use the stable `/dev/input/by-id` and `/dev/serial/by-id` names. You need read access to the
+input device and write access to the serial port (e.g. the `input` and `uucp`/`dialout` groups,
+or run it as root). Ctrl+C or SIGTERM stops it and releases any held button.
+
+### Switching automatically
+`forward` is meant to be started and stopped by whatever tells you that you've moved to the
+other device. For example, a udev rule that hands the mouse over while a USB keyboard is
+unplugged (replace the IDs and paths with yours):
+
+    # /etc/udev/rules.d/90-fake-bluetooth-mouse.rules
+    SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="5ac/320/*", ACTION=="remove", \
+      RUN+="/usr/bin/systemd-run --no-block --collect --unit=fake-bluetooth-mouse \
+        -p SyslogIdentifier=fake-bluetooth-mouse /path/to/forward /dev/input/by-id/... /dev/serial/by-id/..."
+    SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_VENDOR_ID}=="05ac", ENV{ID_MODEL_ID}=="0320", \
+      ACTION=="add", RUN+="/usr/bin/systemctl --no-block stop fake-bluetooth-mouse"
+
+Remove events only carry the kernel's `PRODUCT` (vendor/product/bcd), not udev's ID_* properties.
+Logs: `journalctl -t fake-bluetooth-mouse`.
+
+## Protocol
 Serial frame (7 bytes): `0xA5, buttons, dx int16 LE, dy int16 LE, wheel int8`.
 Buttons: bit 0 left, 1 right, 2 middle, 3 back, 4 forward. The firmware sums motion
 that arrives while the radio is busy and sends it in the next report.
 
 Sending `?` on the serial port (outside a frame) prints the chip temperature, the BLE
 link (peer, connection interval) and frames/reports per second since the last `?`.
-
-## Trigger
-`/etc/udev/rules.d/90-dell-follows-keyboard.rules`: keyboard unplugged ->
-`systemd-run --unit=fake-bluetooth-mouse .../forward` (plus the Dell input switch); plugged ->
-`systemctl stop fake-bluetooth-mouse`. Replugging the keyboard always gives the mouse back.
-Log: `journalctl -t fake-bluetooth-mouse`.
-
-## Build / flash
-Close the Arduino IDE's Serial Monitor first (it holds the port).
-
-    make forward      # also: make test (doctest), make lint (clang-format + clang-tidy)
-    CLI=/opt/arduino-ide/resources/app/lib/backend/resources/arduino-cli
-    $CLI --config-file ~/.arduinoIDE/arduino-cli.yaml compile --upload \
-        -b nRFMicro-like_Boards:nrf52:supermini -p /dev/ttyACM0 fake-bluetooth-mouse
-
-## Pairing
-Once, on the laptop: Bluetooth settings -> add device -> "Desk Mouse". The board's
-LED blinks while advertising and stays on when connected; the laptop reconnects by itself.
 
 ## License
 MIT, see `LICENSE`.
