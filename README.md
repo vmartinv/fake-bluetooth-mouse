@@ -38,22 +38,8 @@ LED blinks while advertising and stays on when connected; the device reconnects 
 
 Use the stable `/dev/input/by-id` and `/dev/serial/by-id` names. You need read access to the
 input device and write access to the serial port (e.g. the `input` and `uucp`/`dialout` groups,
-or run it as root). Ctrl+C or SIGTERM stops it and releases any held button.
-
-### Switching automatically
-`forward` is meant to be started and stopped by whatever tells you that you've moved to the
-other device. For example, a udev rule that hands the mouse over while a USB keyboard is
-unplugged (replace the IDs and paths with yours):
-
-    # /etc/udev/rules.d/90-fake-bluetooth-mouse.rules
-    SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{PRODUCT}=="5ac/320/*", ACTION=="remove", \
-      RUN+="/usr/bin/systemd-run --no-block --collect --unit=fake-bluetooth-mouse \
-        -p SyslogIdentifier=fake-bluetooth-mouse /path/to/forward /dev/input/by-id/... /dev/serial/by-id/..."
-    SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ENV{ID_VENDOR_ID}=="05ac", ENV{ID_MODEL_ID}=="0320", \
-      ACTION=="add", RUN+="/usr/bin/systemctl --no-block stop fake-bluetooth-mouse"
-
-Remove events only carry the kernel's `PRODUCT` (vendor/product/bcd), not udev's ID_* properties.
-Logs: `journalctl -t fake-bluetooth-mouse`.
+or run it as root). It runs until stopped with Ctrl+C or SIGTERM, releasing any held button, so any
+script or service can start and stop it.
 
 ## Protocol
 Serial frame (7 bytes): `0xA5, buttons, dx int16 LE, dy int16 LE, wheel int8`.
