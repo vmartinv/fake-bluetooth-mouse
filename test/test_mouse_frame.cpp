@@ -1,4 +1,4 @@
-// Unit tests for mouse_frame.h. Frames are decoded the way fake-mouse.ino does.
+// Unit tests for mouse_frame.h. Frames are decoded the way fake-bluetooth-mouse.ino does.
 #include "../mouse_frame.h"
 
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN

@@ -1,11 +1,11 @@
-# fake-mouse
+# fake-bluetooth-mouse
 
 Uses the PC's mouse on the work laptop without installing anything on the laptop.
 A SuperMini nRF52840 plugged into the PC is paired with the laptop as a plain
 Bluetooth mouse ("Desk Mouse"). While the Magic Keyboard is unplugged from the PC
 (you're on the laptop), `forward` grabs the PC's mouse and streams it to the board.
 
-- `fake-mouse/fake-mouse.ino`: board firmware (Bluefruit BLE HID mouse fed by USB serial).
+- `fake-bluetooth-mouse/fake-bluetooth-mouse.ino`: board firmware (Bluefruit BLE HID mouse fed by USB serial).
 - `forward.cpp`: PC side. Grabs `/dev/input/by-id/usb-Logitech_USB_Receiver-if01-event-mouse`
   (EVIOCGRAB, so the PC cursor stops) and writes one frame per SYN_REPORT to the board.
 - `mouse_frame.h`: evdev events -> serial frames, unit-tested in `test/` with doctest
@@ -20,9 +20,9 @@ link (peer, connection interval) and frames/reports per second since the last `?
 
 ## Trigger
 `/etc/udev/rules.d/90-dell-follows-keyboard.rules`: keyboard unplugged ->
-`systemd-run --unit=fake-mouse .../forward` (plus the Dell input switch); plugged ->
-`systemctl stop fake-mouse`. Replugging the keyboard always gives the mouse back.
-Log: `journalctl -t fake-mouse`.
+`systemd-run --unit=fake-bluetooth-mouse .../forward` (plus the Dell input switch); plugged ->
+`systemctl stop fake-bluetooth-mouse`. Replugging the keyboard always gives the mouse back.
+Log: `journalctl -t fake-bluetooth-mouse`.
 
 ## Build / flash
 Close the Arduino IDE's Serial Monitor first (it holds the port).
@@ -30,7 +30,7 @@ Close the Arduino IDE's Serial Monitor first (it holds the port).
     make forward      # also: make test (doctest), make lint (clang-format + clang-tidy)
     CLI=/opt/arduino-ide/resources/app/lib/backend/resources/arduino-cli
     $CLI --config-file ~/.arduinoIDE/arduino-cli.yaml compile --upload \
-        -b nRFMicro-like_Boards:nrf52:supermini -p /dev/ttyACM0 fake-mouse
+        -b nRFMicro-like_Boards:nrf52:supermini -p /dev/ttyACM0 fake-bluetooth-mouse
 
 ## Pairing
 Once, on the laptop: Bluetooth settings -> add device -> "Desk Mouse". The board's

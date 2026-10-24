@@ -1,4 +1,4 @@
-// BLE mouse fed over USB serial by ~/fake-mouse/forward (see ../README.md).
+// BLE mouse fed over USB serial by ~/fake-bluetooth-mouse/forward (see ../README.md).
 // Frame: 0xA5, buttons, dx (int16 LE), dy (int16 LE), wheel (int8).
 #include <bluefruit.h>
 

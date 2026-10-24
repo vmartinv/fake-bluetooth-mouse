@@ -1,4 +1,4 @@
-// Grab the PC's mouse and stream it to the fake-mouse board (BLE mouse) over USB serial.
+// Grab the PC's mouse and stream it to the fake-bluetooth-mouse board (BLE mouse) over USB serial.
 // Started/stopped by the Magic Keyboard udev rule; see README.md.
 #include "mouse_frame.h"
 
