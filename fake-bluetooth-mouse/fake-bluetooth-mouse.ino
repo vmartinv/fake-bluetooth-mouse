@@ -64,7 +64,20 @@ void readSerial() {
   }
 }
 
+extern "C" void tusb_hal_nrf_power_event(uint32_t event);  // 0 detected, 2 ready
+
+// The core enables USB on the VBUS "detected" power event. Plugged in cold, that event
+// can be lost while Bluefruit.begin() hands POWER to the SoftDevice: USB then never
+// enumerates (BLE works) until a pin reset. Replay the events if VBUS is there but
+// USBD is still off. Before begin() POWER can be read directly; after, only via sd_power_*.
+void startUsbIfMissed(uint32_t usbReg) {
+  if (!(usbReg & POWER_USBREGSTATUS_VBUSDETECT_Msk)) return;
+  if (!NRF_USBD->ENABLE) tusb_hal_nrf_power_event(0);
+  if (usbReg & POWER_USBREGSTATUS_OUTPUTRDY_Msk) tusb_hal_nrf_power_event(2);
+}
+
 void setup() {
+  startUsbIfMissed(NRF_POWER->USBREGSTATUS);
   Serial.begin(115200);
 
   // Default HVN queue is 1: each report then waits for the previous one's ack
@@ -72,6 +85,9 @@ void setup() {
   Bluefruit.configPrphConn(BLE_GATT_ATT_MTU_DEFAULT, BLE_GAP_EVENT_LENGTH_DEFAULT, 2,
                            BLE_GATTC_WRITE_CMD_TX_QUEUE_SIZE_DEFAULT);
   Bluefruit.begin();
+  uint32_t usbReg = 0;
+  sd_power_usbregstatus_get(&usbReg);
+  startUsbIfMissed(usbReg);
   Bluefruit.setName("Desk Mouse");
   Bluefruit.Periph.setConnInterval(6, 12);  // 7.5-15 ms; the host has the final say
   Bluefruit.setTxPower(0);  // dBm; enough for a nearby device, less heat than +4
